@@ -331,16 +331,16 @@ def page_overview(df: pd.DataFrame) -> None:
             else:
                 df_export = df_time.copy()
 
-        # 导出前处理“可信度（人工打标）”列：布尔 → "是"/""
+        # 导出前处理“可信度（人工打标）”列：仅对显式勾选/标记为“是”的行输出“是”，其余为空
         if "可信度（人工打标）" in df_export.columns:
             col = df_export["可信度（人工打标）"]
-            # 无论是否为 bool，都按“非空/True -> 是”规则转换
+            # 先统一成布尔：仅当值为 True 或 字符串"是" 视为 True，其余一律 False
             if col.dtype == bool:
-                df_export["可信度（人工打标）"] = col.map(lambda v: "是" if bool(v) else "")
+                col_bool = col
             else:
-                df_export["可信度（人工打标）"] = col.astype(str).str.strip().map(
-                    lambda s: "是" if s and s not in {"False", "false", "0"} else ""
-                )
+                col_bool = col.astype(str).str.strip().eq("是")
+
+            df_export["可信度（人工打标）"] = col_bool.map(lambda v: "是" if bool(v) else "")
 
         # 仅保留业务需要的导出列，去掉 __* 技术列及其他多余字段
         cols_ordered = [c for c in EXPORT_COLUMNS if c in df_export.columns]
