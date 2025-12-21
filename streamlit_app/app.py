@@ -334,9 +334,13 @@ def page_overview(df: pd.DataFrame) -> None:
         # 导出前处理“可信度（人工打标）”列：仅对显式勾选/标记为“是”的行输出“是”，其余为空
         if "可信度（人工打标）" in df_export.columns:
             col = df_export["可信度（人工打标）"]
-            # 先统一成布尔：仅当值为 True 或 字符串"是" 视为 True，其余一律 False
-            if col.dtype == bool:
-                col_bool = col
+            # 先统一成布尔：
+            # - 若为 bool 或 pandas BooleanDtype("boolean")，则 True 表示勾选；
+            # - 否则仅当字符串值为 "是" 视为 True，其余一律 False。
+            dtype_str = str(col.dtype)
+            if col.dtype == bool or dtype_str == "boolean":
+                # 对可空布尔做 NA 填充，避免布尔运算报错
+                col_bool = col.fillna(False).astype(bool)
             else:
                 col_bool = col.astype(str).str.strip().eq("是")
 
