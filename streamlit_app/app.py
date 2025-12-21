@@ -315,61 +315,6 @@ def page_overview(df: pd.DataFrame) -> None:
     # 页面主标题
     st.title("总览：分析结果表格视图")
 
-    # 下载按钮（基于当前视图导出）
-    st.sidebar.markdown("---")
-    st.sidebar.markdown("### 导出当前结果")
-    if not df_time.empty:
-        # 若有编辑后的表格，优先使用编辑结果（包含勾选列）
-        df_export = None
-        edited = st.session_state.get("overview_table")
-        if isinstance(edited, pd.DataFrame) and not edited.empty:
-            df_export = edited.copy()
-        else:
-            # 否则基于当前视图导出（按新闻时间降序）
-            if "__news_time_dt" in df_time.columns:
-                df_export = df_time.sort_values("__news_time_dt", ascending=False)
-            else:
-                df_export = df_time.copy()
-
-        # 导出前处理“可信度（人工打标）”列：仅对显式勾选/标记为“是”的行输出“是”，其余为空
-        if "可信度（人工打标）" in df_export.columns:
-            col = df_export["可信度（人工打标）"]
-            # 先统一成布尔：
-            # - 若为 bool 或 pandas BooleanDtype("boolean")，则 True 表示勾选；
-            # - 否则仅当字符串值为 "是" 视为 True，其余一律 False。
-            dtype_str = str(col.dtype)
-            if col.dtype == bool or dtype_str == "boolean":
-                # 对可空布尔做 NA 填充，避免布尔运算报错
-                col_bool = col.fillna(False).astype(bool)
-            else:
-                col_bool = col.astype(str).str.strip().eq("是")
-
-            df_export["可信度（人工打标）"] = col_bool.map(lambda v: "是" if bool(v) else "")
-
-        # 仅保留业务需要的导出列，去掉 __* 技术列及其他多余字段
-        cols_ordered = [c for c in EXPORT_COLUMNS if c in df_export.columns]
-        if cols_ordered:
-            df_export = df_export[cols_ordered]
-        else:
-            # 兜底：去掉 __ 前缀和隐藏列
-            tech_cols = [c for c in df_export.columns if c.startswith("__")]
-            drop_cols = tech_cols + [c for c in HIDDEN_COLUMNS if c in df_export.columns]
-            if drop_cols:
-                df_export = df_export.drop(columns=drop_cols)
-
-        # 导出时将 NaN 替换为空字符串
-        df_export_excel = df_export.fillna("")
-        buf = io.BytesIO()
-        df_export_excel.to_excel(buf, index=False, engine="openpyxl")
-        buf.seek(0)
-        fname = f"final_risk_control_results_{start_date.strftime('%Y%m%d')}_{start_hour:02d}-{end_date.strftime('%Y%m%d')}_{end_hour:02d}.xlsx"
-        st.sidebar.download_button(
-            label="Download",
-            data=buf,
-            file_name=fname,
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-
     # 展示表格（NaN 显示为空）
     if df_time.empty:
         st.info("在当前筛选条件下没有记录。")
@@ -413,6 +358,57 @@ def page_overview(df: pd.DataFrame) -> None:
             )
         },
     )
+
+    # 下载按钮（基于当前视图导出），放在表格渲染之后，以便使用本次交互的最新编辑结果
+    st.sidebar.markdown("---")
+    st.sidebar.markdown("### 导出当前结果")
+    if not df_time.empty:
+        # 若有编辑后的表格，优先使用当前运行中返回的 edited DataFrame（包含最新勾选状态）
+        if isinstance(edited, pd.DataFrame) and not edited.empty:
+            df_export = edited.copy()
+        else:
+            # 否则基于当前视图导出（按新闻时间降序）
+            if "__news_time_dt" in df_time.columns:
+                df_export = df_time.sort_values("__news_time_dt", ascending=False)
+            else:
+                df_export = df_time.copy()
+
+        # 导出前处理“可信度（人工打标）”列：仅对显式勾选/标记为“是”的行输出“是”，其余为空
+        if "可信度（人工打标）" in df_export.columns:
+            def _map_manual_flag(v: object) -> str:
+                # 仅两种情况视为“勾选”：
+                # 1) 真正的布尔 True；
+                # 2) 字符串值为 "是"。
+                if isinstance(v, bool):
+                    return "是" if v else ""
+                s = str(v).strip()
+                return "是" if s == "是" else ""
+
+            df_export["可信度（人工打标）"] = df_export["可信度（人工打标）"].map(_map_manual_flag)
+
+        # 仅保留业务需要的导出列，去掉 __* 技术列及其他多余字段
+        cols_ordered = [c for c in EXPORT_COLUMNS if c in df_export.columns]
+        if cols_ordered:
+            df_export = df_export[cols_ordered]
+        else:
+            # 兜底：去掉 __ 前缀和隐藏列
+            tech_cols = [c for c in df_export.columns if c.startswith("__")]
+            drop_cols = tech_cols + [c for c in HIDDEN_COLUMNS if c in df_export.columns]
+            if drop_cols:
+                df_export = df_export.drop(columns=drop_cols)
+
+        # 导出时将 NaN 替换为空字符串
+        df_export_excel = df_export.fillna("")
+        buf = io.BytesIO()
+        df_export_excel.to_excel(buf, index=False, engine="openpyxl")
+        buf.seek(0)
+        fname = f"final_risk_control_results_{start_date.strftime('%Y%m%d')}_{start_hour:02d}-{end_date.strftime('%Y%m%d')}_{end_hour:02d}.xlsx"
+        st.sidebar.download_button(
+            label="Download",
+            data=buf,
+            file_name=fname,
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
 
 def _pie_series(df: pd.DataFrame, col: str, empty_label: str = "(空)"):
