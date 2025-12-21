@@ -60,8 +60,12 @@ EXPORT_COLUMNS = [
 st.set_page_config(page_title="风险控制新闻分析可视化", layout="wide")
 
 
-@st.cache_data(show_spinner=False)
 def get_data() -> pd.DataFrame:
+    """每次运行时重新从 result/json 加载全部批次数据。
+
+    为确保新增日期的 JSON 文件（例如当日最新批次）能够立即在界面上体现，
+    此处不做缓存，而是依赖 Streamlit 自身的重跑机制。
+    """
     return load_all_batches()
 
 
