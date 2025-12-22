@@ -264,23 +264,25 @@ def page_overview(df: pd.DataFrame) -> None:
             if tmp is not None:
                 df_time = tmp
 
+        # 第二行：风险分类1、风险分类2、风险类型
         cols_mid = st.columns(3)
         with cols_mid[0]:
-            tmp = _build_multiselect(df_time, "标的分类(人工打标)", "标的分类(人工打标)")
-            if tmp is not None:
-                df_time = tmp
-        with cols_mid[1]:
             tmp = _build_multiselect(df_time, "风险分类1", "风险分类1")
             if tmp is not None:
                 df_time = tmp
-        with cols_mid[2]:
+        with cols_mid[1]:
             tmp = _build_multiselect(df_time, "风险分类2", "风险分类2")
             if tmp is not None:
                 df_time = tmp
+        with cols_mid[2]:
+            tmp = _build_multiselect(df_time, "风险类型", "风险类型")
+            if tmp is not None:
+                df_time = tmp
 
+        # 第三行：标的分类(人工打标)、风险分类(人工打标)
         cols_mid2 = st.columns(2)
         with cols_mid2[0]:
-            tmp = _build_multiselect(df_time, "风险类型", "风险类型")
+            tmp = _build_multiselect(df_time, "标的分类(人工打标)", "标的分类(人工打标)")
             if tmp is not None:
                 df_time = tmp
         with cols_mid2[1]:
