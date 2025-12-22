@@ -279,7 +279,18 @@ def page_overview(df: pd.DataFrame) -> None:
             if tmp is not None:
                 df_time = tmp
 
-        # 第三行：标的分类(人工打标)、风险分类(人工打标)
+        # 第三行：标的所属交易所、交易所所属国家
+        cols_mid_ex = st.columns(2)
+        with cols_mid_ex[0]:
+            tmp = _build_multiselect(df_time, "标的所属交易所", "标的所属交易所")
+            if tmp is not None:
+                df_time = tmp
+        with cols_mid_ex[1]:
+            tmp = _build_multiselect(df_time, "交易所所属国家", "交易所所属国家")
+            if tmp is not None:
+                df_time = tmp
+
+        # 第四行：标的分类(人工打标)、风险分类(人工打标)
         cols_mid2 = st.columns(2)
         with cols_mid2[0]:
             tmp = _build_multiselect(df_time, "标的分类(人工打标)", "标的分类(人工打标)")
