@@ -300,7 +300,13 @@ def page_overview(df: pd.DataFrame) -> None:
                 vals = vals.dropna()
                 if not vals.empty:
                     min_v, max_v = float(vals.min()), float(vals.max())
-                    sim_sliders[col] = st.slider(col, min_v, max_v, (min_v, max_v), step=0.01)
+                    # 若最小值与最大值相等，说明当前筛选下该列只有一个取值；
+                    # 此时若继续创建区间 slider，会因 (min_v == max_v) 触发 Streamlit 的范围校验错误。
+                    if min_v == max_v:
+                        # 仅做提示，不再创建区间滑块
+                        st.write(f"{col}：当前筛选下仅有一个数值 {min_v:.2f}，不提供区间筛选。")
+                    else:
+                        sim_sliders[col] = st.slider(col, min_v, max_v, (min_v, max_v), step=0.01)
         for col, (lo, hi) in sim_sliders.items():
             vals = pd.to_numeric(df_time[col], errors="coerce")
             mask = (vals.isna()) | ((vals >= lo) & (vals <= hi))
